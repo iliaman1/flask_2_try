@@ -3,7 +3,6 @@ import os
 from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
 from flsite import FDataBase
 
-
 # конфигурация
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
@@ -39,10 +38,18 @@ def get_db():
 
 app.config['SECRET_KEY'] = 'abobys'
 
+
 # menu = [{"name": "Установка", "url": "install-flask"},
 #         {"name": "Первое приложение", "url": "first-app"},
 #         {"name": "Обратная связь", "url": "contact"},
 #         {"name": "Авторизация", "url": "login"}]
+
+@app.errorhandler(404)
+def pageNotFound(error):
+    #трэба добавить возможность подгружать меню из бд пока не получается выдает ексепшон в ексепшоне хех
+    # db = get_db()
+    # dbase = FDataBase(db)
+    return render_template('page404.html', title='Страница не найдена')
 
 
 @app.route("/")
@@ -50,7 +57,7 @@ app.config['SECRET_KEY'] = 'abobys'
 def index():
     db = get_db()
     dbase = FDataBase(db)
-    return render_template('index.html', menu=dbase.getMenu(), posts = dbase.getPostsAnonce())
+    return render_template('index.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
 
 
 @app.route("/about")
@@ -84,9 +91,10 @@ def contact():
 def addPost():
     db = get_db()
     dbase = FDataBase(db)
+
     if request.method == 'POST':
-        if len(request.form['name'])>4 and len(request.form['post'])>10:
-            res = dbase.addPost(request.form['name'], request.form['post'])
+        if len(request.form['name']) > 4 and len(request.form['post']) > 10:
+            res = dbase.addPost(request.form['name'], request.form['post'], request.form['url'])
             if not res:
                 flash('Ошибка добавления статьи', category='error')
             else:
@@ -96,13 +104,14 @@ def addPost():
     return render_template('add_post.html', menu=dbase.getMenu(), title='Добавление статьи')
 
 
-@app.route('/post/<int:id_post>')
-def showPost(id_post):
+@app.route('/post/<alias>')
+def showPost(alias):
     db = get_db()
     dbase = FDataBase(db)
-    title, post = dbase.getPost(id_post)
+    title, post = dbase.getPost(alias)
     if not title:
         abort(404)
+
     return render_template('post.html', menu=dbase.getMenu(), title=title, post=post)
 
 
@@ -124,13 +133,6 @@ def close_db(error):
     '''Закрываем соединение с БД, если оно было установлено'''
     if hasattr(g, 'link_db'):
         g.link_db.close()
-
-
-@app.errorhandler(404)
-def pageNotFound(error):
-    db = get_db()
-    dbase = FDataBase(db)
-    return render_template('page404.html', title='Страница не найдена', menu=dbase.getMenu()), 404
 
 
 if __name__ == '__main__':

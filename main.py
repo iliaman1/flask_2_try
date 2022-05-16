@@ -1,6 +1,6 @@
 import sqlite3 as sq
 import os
-from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g
+from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g, make_response
 from flsite import FDataBase
 
 # конфигурация
@@ -52,12 +52,24 @@ def pageNotFound(error):
     return render_template('page404.html', title='Страница не найдена')
 
 
+
+
+
+
 @app.route("/")
 @app.route('/index')
 def index():
     db = get_db()
     dbase = FDataBase(db)
-    return render_template('index.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce())
+    if 'visits' in session:
+        session['visits'] = session.get('visits')+1
+    else:
+        session['visits'] = 1
+    content = render_template('index.html', menu=dbase.getMenu(), posts=dbase.getPostsAnonce(), visits=f"Число просмотров: {session['visits']}")
+    res = make_response(content)
+    res.headers['Content-Type'] = 'text/html'
+    res.headers['Server'] = 'flasksite'
+    return res
 
 
 @app.route("/about")
@@ -119,13 +131,26 @@ def showPost(alias):
 def login():
     db = get_db()
     dbase = FDataBase(db)
-    print(dbase.getMenu())
-    if 'userLogged' in session:
+    log = ""
+    # if request.cookies.get('logged'):
+    #     log = request.cookies.get('logged')
+    if 'userLogged' in session or request.cookies.get('logged') =='yes':
         return redirect(url_for('profile', username=session['userLogged']))
     elif request.method == 'POST' and request.form['username'] == "iliaman" and request.form['psw'] == "123":
         session['userLogged'] = request.form['username']
-        return redirect(url_for('profile', username=session['userLogged']))
+        content = redirect(url_for('profile', username=session['userLogged']))
+        res = make_response(content)
+        res.set_cookie("logged", "yes", 30*24*3600)
+        return res
     return render_template('login.html', title='Авторизация', menu=dbase.getMenu())
+
+
+@app.route("/logout")
+def logout():
+    res = make_response('Вы больше не авторизированы!')
+    res.set_cookie("logged", "", 0)
+    if session['userLogged']: del session['userLogged']
+    return res
 
 
 @app.teardown_appcontext

@@ -3,6 +3,8 @@ import os
 from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g, make_response
 from flsite import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_user, login_required
+from UserLogin import UserLogin
 
 # конфигурация
 DATABASE = '/tmp/flsite.db'
@@ -11,9 +13,14 @@ SECRET_KEY = 'abobus70000'
 
 app = Flask(__name__)
 app.config.from_object(__name__)
-
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 
+login_manager = LoginManager(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    print("load_user")
+    return UserLogin().fromDB(user_id, dbase)
 
 def create_db():
     """Вспомогательная функция для создания БД"""
@@ -116,6 +123,7 @@ def addPost():
 
 
 @app.route('/post/<alias>')
+@login_required
 def showPost(alias):
     title, post = dbase.getPost(alias)
     if not title:
@@ -126,18 +134,28 @@ def showPost(alias):
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    log = ""
+    if request.method == "POST":
+        user = dbase.getUserByEmail(request.form['email'])
+        if user and check_password_hash(user['psw'], request.form['psw']):
+            userlogin = UserLogin().create(user)
+            login_user(userlogin)
+            return redirect(url_for('index'))
+
+        flash("Неверная пара логин/пароль", "error")
+
+    return render_template('login.html', title='Авторизация', menu=dbase.getMenu())
+    # log = ""
     # if request.cookies.get('logged'):
     #     log = request.cookies.get('logged')
-    if 'userLogged' in session or request.cookies.get('logged') =='yes':
-        return redirect(url_for('profile', username=session['userLogged']))
-    elif request.method == 'POST' and request.form['username'] == "iliaman" and request.form['psw'] == "123":
-        session['userLogged'] = request.form['username']
-        content = redirect(url_for('profile', username=session['userLogged']))
-        res = make_response(content)
-        res.set_cookie("logged", "yes", 30*24*3600)
-        return res
-    return render_template('login.html', title='Авторизация', menu=dbase.getMenu())
+    # if 'userLogged' in session or request.cookies.get('logged') =='yes':
+    #     return redirect(url_for('profile', username=session['userLogged']))
+    # elif request.method == 'POST' and request.form['username'] == "iliaman" and request.form['psw'] == "123":
+    #     session['userLogged'] = request.form['username']
+    #     content = redirect(url_for('profile', username=session['userLogged']))
+    #     res = make_response(content)
+    #     res.set_cookie("logged", "yes", 30*24*3600)
+    #     return res
+    # return render_template('login.html', title='Авторизация', menu=dbase.getMenu())
 
 
 @app.route("/register", methods=["POST", "GET"])

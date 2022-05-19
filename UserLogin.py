@@ -1,3 +1,4 @@
+from flask import url_for
 from flask_login import UserMixin
 
 class UserLogin(UserMixin):
@@ -22,7 +23,7 @@ class UserLogin(UserMixin):
         img = None
         if not self.__user['avatar']:
             try:
-                with app.open_resource(app.root_path + url_for('static', filename='images/default.png'), 'rb') as f:
+                with app.open_resource(app.root_path + url_for('static', filename='img/default.png'), 'rb') as f:
                     img = f.read()
             except FileNotFoundError as e:
                 print('Ненайден аватар по умолчанию: '+str(e))

@@ -18,7 +18,7 @@ def logout_admin():
     session.pop('admin_logged', None)
 
 
-menu = [{'url': '.index', 'title': 'Панель'}, {'url': '.listpubs', 'title': 'Список статей'}, {'url': '.logout', 'title': 'Выйти'}]
+menu = [{'url': '.index', 'title': 'Панель'}, {'url': '.listpubs', 'title': 'Список статей'}, {'url': '.listusers', 'title': 'Список пользователей'}, {'url': '.logout', 'title': 'Выйти'}]
 db = None
 
 
@@ -89,7 +89,7 @@ def listusers():
         except sqlite3.Error as e:
             print("Ошибка получения пользователей из BD"+str(e))
 
-    return render_template('admin/listusers.html', title='Список статей', menu=menu, list=list)
+    return render_template('admin/listusers.html', title='Список пользователей', menu=menu, list=list)
 
 
 @admin.route('/logout')

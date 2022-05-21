@@ -1,6 +1,8 @@
 import sqlite3 as sq
 import os
+import warnings
 from flask import Flask, render_template, url_for, request, flash, session, redirect, abort, g, make_response
+from flask_sqlalchemy import SQLAlchemy, FSADeprecationWarning
 from flsite import FDataBase
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
@@ -16,9 +18,13 @@ MAX_CONTENT_LENGTH = 1024 * 1024
 
 app = Flask(__name__)
 app.config.from_object(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///flsite.db'
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 
 app.register_blueprint(admin, url_prefix='/admin')
+
+dba = SQLAlchemy(app)
+warnings.warn(FSADeprecationWarning(False))
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'

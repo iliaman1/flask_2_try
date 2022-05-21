@@ -1,5 +1,7 @@
+import sqlite3
+
 from flask import Blueprint
-from flask import render_template, request, flash, redirect, url_for, session
+from flask import render_template, request, flash, redirect, url_for, session, g
 
 admin = Blueprint('admin', __name__, template_folder='templates', static_folder='static')
 
@@ -17,6 +19,21 @@ def logout_admin():
 
 
 menu = [{'url': '.index', 'title': 'Панель'}, {'url': '.logout', 'title': 'Выйти'}]
+db = None
+
+
+@admin.before_request
+def befor_request():
+    '''Установка соединения с БД'''
+    global db
+    db = g.get('link_db')
+
+
+@admin.teardown_request
+def teardown_request(request):
+    global db
+    db = None
+    return request
 
 
 @admin.route('/')
@@ -39,6 +56,23 @@ def login():
             flash("Неверная пара логин/пароль", "error")
 
     return render_template('admin/login.html', title='Админ-панель')
+
+
+@admin.route('/list-pubs')
+def listpubs():
+    if not isLogged():
+        return redirect(url_for('.login'))
+
+    list = []
+    if db:
+        try:
+            cur = db.cursor()
+            cur.execute(f"SELECT title, text, url FROM posts")
+            list = cur.fetchall()
+        except sqlite3.Error as e:
+            print("Ошибка получения статей из BD"+str(e))
+
+    return render_template('admin/listpubs.html', title='Список статей', menu=menu, list=list)
 
 
 @admin.route('/logout')
